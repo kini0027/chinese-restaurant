@@ -1,0 +1,300 @@
+buffer 1,256,32
+picload "map.bmp"
+buffer 2,72,128
+picload "cc.bmp"
+buffer 6,128,96
+picload "charatip1.bmp"
+
+screen 0,480,480
+
+
+; 地図読み
+
+dim map,15,15
+
+notesel buf
+noteload "map.txt"
+repeat 15
+noteget row,i
+	repeat 15
+	getstr tip,row,index,','
+	index += strsize
+	map(cnt,i) = int(tip)
+	loop
+i++
+index = 0
+loop
+
+
+;画像音楽読み
+
+celload "finaloutput.bmp", 3
+celload "bhit.bmp", 4
+celload "finalmat.gif", 5
+celload "message.gif", 7
+celload "yuka.bmp", 8
+celload "dialog.gif", 9
+celload　"osmt2.gif", 10
+celload "opening1.bmp",12
+celload "opening2.gif",13
+celload "opening5.bmp",14
+celload "opening4.gif",15
+celload "opening3.1.bmp",16
+celload "opening3.2.bmp",17
+celload "opening3.bmp",18
+celload "gamestart.bmp",19
+celload "final.bmp",21
+mmload "bgm1.wav", 11,1
+mmplay 11
+mmload "bgm2.wav",20,1
+
+;キャラ情報
+
+dim ex
+dim ey
+dim edir
+dim walk
+dim wdx
+dim wdy
+
+ex = 1
+ey = 8
+
+// メッセージをだす位置
+mes_i = 0
+mes_j = 0
+
+mes_m = 0
+mes_n = 0
+
+mes_p = 0
+mes_q = 0
+
+// 顔の交換を管理
+change = 0
+
+gosub *set_message_no
+
+;オバー判定
+回数=0
+
+;開場
+dim a
+
+*opening1
+redraw 0
+	a--
+	gmode 1: pos 0, 110: gcopy 12,0,0,480,480
+    gmode 2: pos a, 97: gcopy 13,0,0,600,480
+    redraw 1
+	//button goto "start" ,*main
+	await 16
+	stick key
+	if key&32 :goto *ginit1
+	goto *opening1
+    
+*ginit1
+	;	ゲームスタート時の初期化
+	stage1=1
+
+*opening2
+	redraw 0
+	gmode 1: pos 0, 110: gcopy 14,0,0,480,480
+	
+    celload "opening4.gif",1
+	celdiv 1,0,0,165,165
+
+    mr++
+	gmode 2						; 透明色ありの指定
+	pos 240,225					; 表示位置の設定
+	celput 1,0,1,1,mr				; 画像コピー
+	
+	redraw 1					; 描画終わり
+	await 80
+
+
+	stick key
+	if key&32 :goto *ginit2
+	goto *opening2
+
+*ginit2
+	stage2=1
+
+*opening3
+redraw 0
+	gmode 2: pos 0, 0: gcopy 18,0,0,480,480
+	gmode 2: pos 0, 0: gcopy 16,0,0,480,480
+    redraw 1
+	await 16
+	stick key
+	if key&32 :goto *ginit3
+	goto *opening3
+    
+*ginit3
+	;	ゲームスタート時の初期化
+	stage3=1
+
+*opening4
+redraw 0
+	gmode 2: pos 0, 0: gcopy 17,0,0,480,480
+    redraw 1
+	await 16
+	stick key
+	if key&32 :goto *ginit4
+	goto *opening4
+    
+*ginit4
+	;	ゲームスタート時の初期化
+	stage4=1
+
+*opening5
+redraw 0
+	gmode 2: pos 0, 5: gcopy 19,0,0,480,480
+    redraw 1
+	await 16
+	stick key
+	if key&32 :goto *ginit5
+	goto *opening5
+    
+*ginit5
+	;	ゲームスタート時の初期化
+	stage5=1
+	
+*main
+	redraw 0
+	gosub *draw_map
+	gosub *draw_me
+	gosub *draw_dialog
+
+	stick key
+	if key = 16 & (x =3+mes_i or x =3+mes_m or x = 3+mes_p){
+
+		gosub *set_message_no
+		gosub *count
+	}
+	if key = 32 {
+		change = change+1
+	}
+	if change = 1 {
+		gosub *face_smile
+	}
+	if change = 2 {
+		gosub *face_surprise
+	}
+    if change = 3 {
+	    gosub *face_final
+	}
+	redraw 1
+	gosub *message
+    gosub *move
+    時間--
+
+await 30
+goto *main
+
+
+*move
+stick key,15
+if walk = 0 {
+	wdx = 0 :wdy = 0
+	if key = 1: wdx-- //左移動
+	if key = 2: wdy-- //上移動
+	if key = 4: wdx++ //右移動
+	if key = 8: wdy++ //下移動
+	if (wdx ! 0) | (wdy ! 0){
+		walk = 1
+		edir = logf(key)/logf(2) 
+		x = ex+wdx : y = ey+wdy
+		if (x < 1) | (x > 14) : walk = 0 :x = 0
+		if (y < 1) | (y > 14) : walk = 0 :y = 0
+		if map(x,y) :walk = 0
+	}
+}
+return
+
+
+*draw_me
+gmode 4,24,32,256
+color 0,117,117
+pos ex*32+walk*wdx*8+4,ey*32+walk*wdy*8
+	if walk = 0 : gcopy 6,24,(edir * 32),24,32
+	if walk = 1 : gcopy 6,0,(edir * 32),24,32
+	if walk = 2 : gcopy 6,24,(edir * 32),24,32
+	if walk = 3 : gcopy 6,48,(edir * 32),24,32
+	if walk = 4 {
+		gcopy 6,24,(edir * 32),24,32
+		walk = 0
+		ex += wdx
+		ey += wdy
+		wdx = 0 : wdy = 0
+	}
+	if walk:walk++
+return
+
+
+*draw_map
+	gmode 0
+	pos 0, 0
+	gcopy 3, 0, 0, 480, 480
+	return
+
+*draw_dialog
+	gmode 2,360,160,256:pos 35,310:gcopy 9,0,0,400,400
+	gmode 2,200,200,256:pos 200,220:gcopy 5,0,0,400,400
+	return
+
+*face_smile
+	gmode 2,200,200,256
+	pos 200,220
+	gcopy 5,0,0,400,400
+    pos 55,340
+	mes "いらっしゃい～いらっしゃい～！"
+	return
+
+*face_surprise
+	gmode 2,200,200,256
+	pos 200,220
+	gcopy 10,0,0,400,400
+	pos 55,340
+	mes "ええええええええええーーーーーー！\n今日のお客さん、なんか見覚えがある！\n面倒くさいやつばかりや！"
+	return
+
+*face_final
+	gmode 2,200,200,256
+	pos 200,220
+	gcopy 5,0,0,400,400
+	pos 55,340
+	mes "まぁいいやーー！今日もがんばりや！！！\nゲーム説明：\nキャラ移動[←][↑][↓][→]\n注文受け取る[スペース](お客様のテーブルの前に押す)\n時間制限以内一定量の注文を受け取れば勝ち"
+	return
+
+*set_message_no
+	mes_i = rnd(8)
+	mes_j = rnd(2)
+	mes_m = rnd(8)
+	mes_n = rnd(2)
+	mes_p = rnd(8)
+	mes_q = rnd(2)
+	return
+
+*message
+	gmode 2,32,32,256:pos 96+32*mes_i, 64*(mes_j+1):celput 7
+	gmode 2,32,32,256:pos 96+32*mes_m, 64*(mes_n+1):celput 7
+	gmode 2,32,32,256:pos 96+32*mes_p, 64*(mes_q+1):celput 7
+return
+
+*count
+	font "ＭＳ　明朝"
+		回数++
+		if 回数>10:goto *終了
+		redraw 2
+		pos 35,31
+		mes 回数
+		redraw 1
+		wait 10
+		return
+*終了
+	mmstop
+	mmplay 20
+	redraw 0
+	gmode 1: pos 0, 0: gcopy 21,0,0,480,480
+	redraw 1
