@@ -9,3 +9,4 @@ Mini Restaurant Simulation Game
 ![image](https://user-images.githubusercontent.com/104482322/206733412-121c5655-5163-47d3-88c6-55c10cdfa839.png)
 # Environment
 HSP3.2 (Hot Soup Processing)
+-Because of the copyright issue, the background music was not uploaded-
